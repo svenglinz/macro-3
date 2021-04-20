@@ -1,0 +1,269 @@
+---
+title: "Exercise 2, Macroeconomics III"
+author: 
+- Andreas Helfer (19-613-637)
+- Lea Krähenmann (19-609-221)
+- Sven Glinz (19-607-456)
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+    code_folding: hide
+    code_download: true
+    
+---
+
+## {.tabset .tabset-fade}
+### Exercise 4.1
+
+<h3>Exercise 4.1.b</h3>
+
+From $(6)$ in the exercise sheet, we know that: 
+
+$$\tilde{k}_{t+1} = \frac{1}{1+n}\tilde{k}^\phi_t(s\tilde{k}_t^\alpha + (1-\delta)\tilde{k}_t)^{1-\phi}$$
+In steady state, we know that $\tilde{k}_t$ must be stationary and thus that $\tilde{k}_{t+1} = \tilde{k}_t$.
+
+We therefore set: 
+
+$$\tag1 \frac{1}{1+n}\tilde{k}^\phi_t(s\tilde{k}_t^\alpha + (1-\delta)\tilde{k}_t)^{1-\phi} = \tilde{k}_{t}$$
+
+we multiply by $1+n$ and get: 
+
+$$\tag2 \tilde{k}^\phi_t(s\tilde{k}_t^\alpha + (1-\delta)\tilde{k}_t)^{1-\phi} = (1+n)\tilde{k}_{t}$$
+we divide by $\tilde{k}_t^\phi$ and get: 
+
+$$\tag3 \big[s\tilde{k}_t^\alpha + (1-\delta)\tilde{k}_t\big]^{1-\phi} = (1+n)\tilde{k}^{1-\phi}_{t}$$
+we raise to the power of $\frac{1}{1-\phi}$ and get: 
+
+$$\tag4 s\tilde{k}_t^\alpha + (1-\delta)\tilde{k}_t= (1+n)^{\frac{1}{^{1-\phi}}}{\tilde{k}_t}$$
+we subtract $(1-\delta)\tilde{k}_t$, divide by $s\tilde{k}_t$ and get: 
+
+$$\tag5 \tilde{k}_t^{\alpha-1} = \frac{(1+n)^{\frac{1}{^{1-\phi}}}-(1-\delta)}{s}$$
+Finally, we raise the expression to $\frac{1}{\alpha-1}$ and invert it since $\alpha -1 < 1$ and get the steady state value:
+
+$$\tag6 \tilde{k}^* = \bigg[\frac{s}{(1+n)^{\frac{1}{^{1-\phi}}}-(1-\delta)}\bigg]^{\frac{1}{1-\alpha}}$$
+Since $\tilde{y}_t = \tilde{k}_t^\alpha$, we can write $\tilde{y}^* = {\tilde{k}^*}^{\alpha}$
+
+$$\tag7 \tilde{y}^* = \bigg[\frac{s}{(1+n)^{\frac{1}{^{1-\phi}}}-(1-\delta)}\bigg]^{\frac{\alpha}{1-\alpha}}$$
+
+<h3>Exercise 4.1.c</h3>
+
+In balanced growth, the following must hold: 
+
+$$\tag8 \frac{\tilde{k}_{t+1}}{\tilde{k}_t} = \frac{1}{1+n} \bigg[\frac{K_{t+1}}{K_t}\bigg]^{1-\phi} = 0$$
+
+By multiplying by $1+n$ and raising to the power of $\frac{1}{1-\phi}$ we get: 
+
+$$\tag9 \frac{K_{t+1}}{K_t} = (1+n)^{\frac{1}{1-\phi}}$$
+
+
+From identity $(2)$ in the exercise sheet, we get that $A_t = K_t^\phi$.
+
+By raising to the power of $\phi$ and thus substituting $A_t$ for $K_t^\phi$ we get:
+
+$$\tag{10} \frac{A_{t+1}}{A_t} = (1+n)^{\frac{\phi}{1-\phi}} \implies g^A = (1+n)^{\frac{\phi}{1-\phi}}-1$$
+Since in steady state, growth rate in income per worker only comes from the growth rate of technology $A$, the growth rate of income must be equal
+to the growth rate of capital ($g^A = g^{y^*}$)
+
+Thus: 
+
+$$\tag{11} g^{y^*} = (1+n)^{\frac{\phi}{1-\phi}}-1$$
+
+<h3>Exercise 4.1.d</h3>
+
+As is visible from $(11)$, the growth rate of income per worker is determined by the model parameter $\phi$ and $n$.
+$g^{y^*}$ positively depends on $n$ and $\phi$.
+
+
+<h3>Exercise 4.1.e</h3>
+
+Impact: if s increases, the steady state growth path will increase -> Directly visible from the equation above 
+
+<h3>Exercise 4.1.f</h3>
+
+
+To start with, we create a function which takes as inputs the different parameters and stores them in a list. 
+Further, we define a function which makes a time series out of the input parameters and one which turns the 
+time series data into a data frame. 
+
+```{r}
+library(tidyverse)
+#create a list which contains all attributes of the economy
+Economy <- function(alpha, phi, delta, s, n, L){
+  
+    values <- list(alpha = alpha, phi = phi, delta = delta, L = L,
+                 s = s, n = n,
+                 k_ss = (s[1]/((1+n)^(1/(1-phi))-(1-phi)))^(1/(1-alpha)),
+                 y_ss = (s[1]/((1+n)^(1/(1-phi))-(1-phi)))^(alpha/(1-alpha)), 
+                 c_ss = (1-s[1])*(s[1]/((1+n)^(1/(1-phi))-(1-phi)))^(alpha/(1-alpha)),
+                 k = NULL, h = NULL, y = NULL, c = NULL, sy = NULL, time = NULL,
+                 ln_c = NULL,ln_y = NULL, K = NULL, g_y =NULL, A = NULL
+                 )
+    
+    return(values)
+}
+
+#function which creates a data frame from parameters within the Economy list. 
+#We can select the name of the columns and which parameters should go into the data frame.
+#if ... = "all", all time series parameters are placed into the data frame  
+
+df <- function(x, ...,  name = NULL){
+  
+  args <- c("time", ...)
+  
+  if("all" %in% args){
+  args <- c("k", "y", "c", "K", "L", "ln_c", "ln_y", "g_y")
+  }
+
+  #default for col-names is the name of the economy
+  if (is.null(name)){
+        name <- deparse(substitute(x))
+  }
+
+  df <- data.frame(matrix(nrow = length(x[[args[1]]]), ncol = length(args)))
+  
+  #create data frame df and set col-names
+  for (i in 1:length(args)){
+    
+    df[,i] <- x[[args[i]]]
+    
+    ifelse(
+      name != FALSE, 
+      names(df)[i] <- paste(name, args[i]),
+      names(df)[i] <- args[i])
+
+  }
+  row.names(df) <- c(0:(length(x[[args[1]]])-1))
+  return(df)
+}
+
+#function which creates time series over a period t for all time series values 
+ts <- function(x, t){
+  
+  #determine starting positions 
+  x[c("k", "y", "c")] <- x[c("k_ss", "y_ss", "c_ss")]
+  
+  x <- within(x,
+    list(
+      A <-  (k*L)^(phi/(1-phi)),
+      K <-  k[1]*L[1]^(phi/(1-phi)),
+      ln_y <-  log(y[1]*A[1]),
+      ln_c <- log(c[1]*A[1]),
+      g_y <- 0,
+      time <- c(0:t)
+              ))
+
+  for (i in 1:t){
+    
+        #difference equations 
+        x <- within(x,
+          list(
+            A[1+i] <- (k[i]*L[i])^(phi/(1-phi)),
+            k[1+i] <- (1/(1+n))*(k[i]*(s[i]*k[i]^(alpha-1)+(1-delta)))^(1-phi),
+            y[1+i] <- k[1+i]^alpha,
+            c[1+i] <- (1-s[i])*y[1+i],
+            L[1+i] <- (1+n)*L[i],
+            K[1+i] <- (k[1+i]*L[1+i])^(phi/(1-phi)),
+            ln_c[1+i] <- log(c[1+i]*A[1+i]),
+            ln_y[1+i] <- log(y[1+i]*A[1+i]),
+            g_y[1+i] <- ((y[1+i]*A[1+i])/(y[i]*A[i])-1)*100 
+            )
+          )
+  }
+  return(x)
+}
+
+```
+
+
+```{r, class.source = "fold-show"}
+#initialize economy
+economy1 <- Economy(alpha = 1/3, phi = 0.6, delta = 0.1, s = c(rep(0.15,10), rep(0.25,190)), n = 0.01, L = 1)
+economy2 <- Economy(alpha = 1/3, phi = 1, delta = 0.1, s = c(rep(0.15,10), rep(0.25,190)), n = 0, L = 1)
+
+#produce time series 
+economy1 <- ts(economy1, t = 200)
+economy2 <- ts(economy2, t = 200)
+
+#produce data frame
+economy1_df <- df(economy1, "all", name = FALSE)
+economy2_df <- df(economy2, "all", name = FALSE)
+```
+
+#### {.tabset}
+
+##### Economy1
+```{r, echo = FALSE}
+library(DT)
+datatable(round(economy1_df,3), extensions = c("FixedHeader", "FixedColumns"), options = list(dom = "t", scrollX = TRUE, scrollY = 350, pageLength = 201, fixedColumns = TRUE))
+
+```
+
+##### Economy2
+```{r, echo = FALSE}
+library(DT)
+datatable(round(economy2_df,3), extensions = c("FixedHeader", "FixedColumns"), options = list(dom = "t", scrollX = TRUE, scrollY = 350, pageLength = 201, fixedColumns = TRUE))
+
+```
+#### {-}
+
+#### {.tabset}
+
+##### ln_c
+```{r, message = FALSE}
+#visualization
+
+ggplot()+
+  geom_line(data = economy1_df, aes(x = as.numeric(row.names(economy1_df)), y = ln_c, color = "Economy1"), size = 0.75)+
+  geom_line(data = economy2_df, aes(x = as.numeric(row.names(economy1_df)), y = ln_c, color = "Economy2"), size = 0.75)+
+  labs(title = "evolution of ln_c over time", x = "time", color = NULL)+
+  theme_classic()
+```
+
+##### ln_c
+```{r}
+#visualization 
+ggplot()+
+  geom_line(data = economy1_df, aes(x = as.numeric(row.names(economy1_df)), y = ln_y, color = "Economy1"), size = 0.75)+
+  geom_line(data = economy2_df, aes(x = as.numeric(row.names(economy1_df)), y = ln_y, color = "Economy2"), size = 0.75)+
+  labs(title = "evolution of ln_y over time", x = "time", color = NULL)+
+  theme_classic()
+```
+
+##### ln_c
+```{r}
+#visualization 
+ggplot()+
+  geom_line(data = economy1_df, aes(x = as.numeric(row.names(economy1_df)), y = g_y, color = "Economy1"), size = 0.75)+
+  geom_line(data = economy2_df, aes(x = as.numeric(row.names(economy1_df)), y = g_y, color = "Economy2"), size = 0.75)+
+  labs(title = "Growth of income over time", x = "time", color = NULL)+
+  theme_classic()
+```
+
+####{-}
+
+<h3>Exercise 4.1.g</h3>
+
+<h3>Exercise 4.1.h</h3>
+
+
+### Exercise 4.2
+
+<h3>Exercise 4.2.a</h3>
+
+<h3>Exercise 4.2.b</h3>
+
+<h3>Exercise 4.2.c</h3>
+
+<h3>Exercise 4.2.d</h3>
+
+<h3>Exercise 4.2.e</h3>
+
+## {-}
+
+
+```{r}
+a <- list(a = 1:100, b = 1:100)
+class(a) <- "data.frame"
+```
+
